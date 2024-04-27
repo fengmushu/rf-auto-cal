@@ -1,4 +1,3 @@
-
 import time
 import serial
 import serial.threaded
@@ -8,7 +7,6 @@ import logging
 LOG_FMT="%(asctime)s %(module)s %(name)s %(message)s"
 logging.basicConfig(format=LOG_FMT, filename="dut.log", level=logging.NOTSET)
 logger=logging.getLogger(__name__)
-
 
 try:
     import queue
@@ -37,10 +35,11 @@ class DutProtocol(serial.threaded.LineReader):
         self.responses.put(None)
 
     def reset(self):
+        logger.debug("reset")
         self.command("reset")
-        pass
 
     def connection_made(self, transport):
+        logger.debug("dut protocol connection made {}".format(transport))
         super(DutProtocol, self).connection_made(transport)
         self.transport.serial.rts = False
         time.sleep(0.3)
@@ -92,8 +91,27 @@ class DutProtocol(serial.threaded.LineReader):
             self.handle_resp(lines)
             return lines
 
-ser = serial.Serial("/dev/ttyUSB0", baudrate=115200, bytesize=8, parity="N", stopbits=1)
-with serial.threaded.ReaderThread(ser, DutProtocol) as dut:
-    dut.reset()
-    logger.debug("reset ok")
-    dut.command("ls /")
+    def cal_init(self):
+        logger.debug("super cal init")
+
+class DutProtocolSi(DutProtocol):
+    def __init__(self):
+        super(DutProtocolSi, self).__init__()
+
+    # def cal_init(self):
+    #     return super(DutProtocolSi, self).cal_init()
+
+class DutSiFlowers(object):
+    def __init__(self, tty="/dev/ttyUSB0", baudrate=115200, bytesize=8, parity="N", stopbits=1):
+        self.ser = serial.Serial(tty, baudrate, bytesize, parity, stopbits)
+        logger.info("contstructor inited")
+        
+    def auto_cali(self):
+        with serial.threaded.ReaderThread(self.ser, DutProtocolSi) as dut:
+            self.dut = dut
+            dut.reset()
+
+# def main():
+#     dut = DutSiFlowers()
+#     dut.auto_cali()
+# main()
