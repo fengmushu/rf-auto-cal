@@ -20,7 +20,7 @@ class IQView:
         try:
             item=self.wait.until(EC.element_to_be_clickable((by.By.ID, id)))
         except Exception as e:
-            print("Wait {} timeout", id, e)
+            print("wait for <{}> timeout".format(id, e))
             self.browser.quit()
             exit()
         if is_double:
@@ -28,10 +28,10 @@ class IQView:
         else:
             AC(self.browser).click(item).perform()
             
-    def TouchItems(self, IDs):
+    def TouchItem(self, IDs):
         for id in IDs:
-            # self.ClickItem(id["ID"], id['double'])
             print(id)
+            # self.ClickItem(id["ID"], id['double'])
 
 
 def __main__():
