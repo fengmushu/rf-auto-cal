@@ -29,15 +29,7 @@ class DutProtocol(serial.threaded.LineReader):
         self._event_thread.daemon = True
         self._event_thread.start()
         self.lock = threading.Lock()
-
-    def stop(self):
-        self.alive = False
-        self.events.put(None)
-        self.responses.put(None)
-
-    def reset(self):
-        logger.debug("reset")
-        self.command("reset")
+        pass
 
     def connection_made(self, transport):
         logger.debug("dut protocol connection made")
@@ -45,35 +37,27 @@ class DutProtocol(serial.threaded.LineReader):
         self.transport.serial.rts = False
         time.sleep(0.3)
         self.transport.serial.reset_input_buffer()
-
-    def re_set_exp(self, regexp="", cb=None):
-        self._re_exp = regexp
-        self._re_match_hook = cb
-
-    def re_cleanup(self):
-        self._re_exp = None
-        self._re_match_hook = None
+        pass
 
     def _run_event(self):
         while self.alive:
             try:
-                self.process_event(self.events.get())
+                self._process_event(self.events.get())
             except:
                 logging.exception('_run_events queue')
 
-    def process_event(self, event):
+    def _process_event(self, event):
         ''' event handle '''
         print("EVENT: {}".format(event))
 
-    def process_resp(self, line):
+    def _process_resp(self, line):
         ''' line response handle '''
         print("RESP: {}".format(line))
         if self._re_exp:
             m = re.search(self._re_exp, line)
             if m:
-                # print("{}: {}".format(self._re_exp, m))
-                if self._re_match_hook(line):
-                    self.command_wait_fin()
+                if self._re_match_hook and self._re_match_hook(line, self._re_match_args):
+                    self._command_wait_fin()
 
     def handle_line(self, line):
         if self._awaiting_response_for == None:
@@ -81,10 +65,10 @@ class DutProtocol(serial.threaded.LineReader):
         else:
             self.responses.put(line)
 
-    def command_wait_fin(self):
+    def _command_wait_fin(self):
         self._awaiting_response_for = None
 
-    def command(self, cmd, resp=None, wait_sec=5):
+    def Command(self, cmd, resp=None, wait_sec=5):
         """ request exec, and wait for response """
         with self.lock:
             self._awaiting_response_for = cmd
@@ -94,7 +78,7 @@ class DutProtocol(serial.threaded.LineReader):
             while waits > 0 and self._awaiting_response_for:
                 try:
                     line = self.responses.get(timeout=1)
-                    self.process_resp(line)
+                    self._process_resp(line)
                     if resp != None and line == resp:
                         lines.append(line)
                         return
@@ -106,6 +90,25 @@ class DutProtocol(serial.threaded.LineReader):
             self._awaiting_response_for = None
             return lines
 
-    def cali_init(self):
-        logger.debug("super cal init")
+    def ReSetExp(self, regexp="", cb=None, args=[]):
+        self._re_exp = regexp
+        self._re_match_hook = cb
+        self._re_match_args = args
+        pass
 
+    def ReClear(self):
+        self._re_exp = None
+        self._re_match_hook = None
+        pass
+
+    def Init(self):
+        logger.debug("super cal proto init")
+
+    def Stop(self):
+        self.alive = False
+        self.events.put(None)
+        self.responses.put(None)
+
+    def Reset(self):
+        logger.debug("reset")
+        self.Command("reset")
