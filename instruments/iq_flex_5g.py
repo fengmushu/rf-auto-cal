@@ -10,13 +10,17 @@ from selenium.webdriver.support.ui import WebDriverWait as Wait
 
 class IQView:
     def __init__(self, URL="http://192.168.10.254") -> None:
+        print("open brower")
         self.URL = URL
         self.browser = webdriver.Firefox()
+        print("load {}".format(URL))
         self.browser.get(URL)
-        self.wait=Wait(self.browser, 30)
+        print("set viewer loading timeout")
+        self.wait=Wait(self.browser, 10)
+        print("ready")
         pass
     
-    def ClickItem(self, id="", is_double=False):
+    def ClickItem(self, id, is_double=False):
         try:
             item=self.wait.until(EC.element_to_be_clickable((by.By.ID, id)))
         except Exception as e:
@@ -31,15 +35,27 @@ class IQView:
     def TouchItem(self, IDs):
         for id in IDs:
             print(id)
-            # self.ClickItem(id["ID"], id['double'])
+            
+    def ReadText(self, selector="") -> str:
+        try:
+            item=self.wait.until(EC.visibility_of_element_located((by.By.XPATH, selector)))
+        except Exception as e:
+            print("wait for <{}> timeout".format(id, e))
+            self.browser.quit()
+            exit()
+        # print(item.text)
+        return item.text
 
+    def InitInst(self):
+        print("init instrument ...")
+        self.ClickItem('techBtn')
+        self.ClickItem('wifisiso')
+        self.ClickItem('ResultsTab')
+        self.ClickItem('Row11')
+        self.ClickItem('wifi_siso_item1', True)
 
-def __main__():
-    iq=IQView()
-    iq.ClickItem('techBtn')
-    iq.ClickItem('wifisiso')
-    iq.ClickItem('ResultsTab')
-    iq.ClickItem('Row11')
-    iq.ClickItem('wifi_siso_item1', True)
-
-__main__()
+    def GetEVM(self):
+        ''' Get text value from webui '''
+        print("get evm snapshort")
+        evm = self.ReadText('/html/body/div[1]/div[2]/div[4]/div/div[1]/div[1]/div/div[2]/div[2]/div/div[1]/div/div[1]/table/tbody/tr[1]/td[2]')
+        print(evm)
